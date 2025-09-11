@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import Loading from './src/pages/loading/index.js';
 import Login from './src/pages/login/index.js';
 import Cadastro from './src/pages/cadastro/index.js';
+import Home from './src/pages/home/index.js';
 
 
 // Criando o Stack
@@ -17,6 +18,7 @@ function Main() {
         <Stack.Screen name="Loading" component={Loading} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Cadastro" component={Cadastro} />
+        <Stack.Screen name="Home" component={Home} />
       </Stack.Navigator>
     </NavigationContainer>
   );
