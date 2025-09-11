@@ -1,35 +1,30 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, Animated, ActivityIndicator, Text, View, Image } from 'react-native';
+import { Animated, ActivityIndicator, Image } from 'react-native';
 import styles from './style.js';
 
-export default function Loading() {
+export default function Loading({ navigation }) {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
-    // Fade in
+    // Fade in (1s)
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 2000,
+      duration: 1000,
       useNativeDriver: true,
-    }).start();
-
-    // Fade out after 2s, then navigate (replace with your navigation logic)
-    const timeout = setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 2000,
-        useNativeDriver: true,
-      }).start(() => {
-        setTimeout(() => {
+    }).start(() => {
+      // Espera mais 1s, depois faz fade-out e navega
+      setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500, // fade-out rápido
+          useNativeDriver: true,
+        }).start(() => {
           navigation.replace('Login');
-        }, 4000);
-        timeout; // Limpa o timeout após a navegação
-      });
-    }, 2000);
-
-    return () => clearTimeout(timeout);
-  }, [fadeAnim]);
+        });
+      }, 1000); // espera mais 1s após o fade-in
+    });
+  }, [fadeAnim, navigation]);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -42,4 +37,3 @@ export default function Loading() {
     </Animated.View>
   );
 }
-
