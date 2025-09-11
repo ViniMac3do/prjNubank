@@ -148,7 +148,7 @@ const Cadastro = ({ navigation }) => {
           title={carregando ? 'Cadastrando...' : 'Cadastrar'}
           onPress={cadastrar}
           color="#8309d0"
-          disabled={carregando} // Desabilitar o botão enquanto carrega
+          disabled={carregando}
         />
 
         <Pressable onPress={() => navigation.navigate('Login')}>
