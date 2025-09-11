@@ -6,6 +6,7 @@ import Loading from './src/pages/loading/index.js';
 import Login from './src/pages/login/index.js';
 import Cadastro from './src/pages/cadastro/index.js';
 import Home from './src/pages/home/index.js';
+import Extrato from './src/pages/extrato/index.js';
 
 
 // Criando o Stack
@@ -19,6 +20,7 @@ function Main() {
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Cadastro" component={Cadastro} />
         <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Extrato" component={Extrato} />
       </Stack.Navigator>
     </NavigationContainer>
   );

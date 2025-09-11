@@ -7,22 +7,22 @@ export default function Loading({ navigation }) {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
-    // Fade in (1s)
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start(() => {
-      // Espera mais 1s, depois faz fade-out e navega
+  
       setTimeout(() => {
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 500, // fade-out rápido
+          duration: 500, 
           useNativeDriver: true,
         }).start(() => {
           navigation.replace('Login');
         });
-      }, 1000); // espera mais 1s após o fade-in
+      }, 1000); 
     });
   }, [fadeAnim, navigation]);
 

@@ -5,7 +5,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 10,
   },
   logo: {
     width: 150, // Tamanho da logo
@@ -17,11 +17,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#ffffffff', // Texto em branco
-    paddingTop: 40,
+    paddingTop: 30,
   },
   input: {
     width: 250,
-    height: 20,
+    height: 40,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 5,
