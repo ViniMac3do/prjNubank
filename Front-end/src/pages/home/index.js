@@ -1,38 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, Pressable, FlatList, ScrollView, Alert } from 'react-native';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import styles from './style';
+import { useAuth } from './../../contexts/AuthContext'; 
 
 export default function Home({ route, navigation }) {
+  const { user, signOut } = useAuth();
   const [showBalance, setShowBalance] = useState(false);
-
   const toggleBalance = () => setShowBalance(!showBalance);
-
   const [usuario, setUsuario] = useState(null);
 
-  const emailUsuario = route?.params?.emailUsuario ?? 'email não enviado';
-
-  console.log('Email recebido da tela de login:', emailUsuario);
-
-  const pegarDados = async () => {
-    try {
-      const dados = await axios.get(`http://127.0.0.1:8000/api/usuarios/email/${emailUsuario}`);
-      console.log('Resposta da API para o get na tela home:', dados.data);
-      setUsuario(dados.data);
-
-    } catch (erro) {
-      console.error('Erro na requisição:', erro);
-      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
-    }
+  const handleLogout = () => {
+    signOut();
+    navigation.replace('Login'); // Navega de volta para o Login após sair
   };
-
-  useEffect(() => {
-    if (emailUsuario) {
-      pegarDados();
-    }
-  }, [emailUsuario]);
-
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -40,10 +23,10 @@ export default function Home({ route, navigation }) {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={{ uri: 'https://i.pravatar.cc/150?img=3' }}
+            source={{ uri: user?.foto ?? 'https://i.pravatar.cc/150?img=3' }}
             style={styles.avatar}
           />
-          <Text style={styles.username}>Olá,  {usuario?.nome ?? 'Usuário'}</Text>
+          <Text style={styles.username}>Olá, {user?.nome ?? 'Usuário'}</Text>
         </View>
         <View style={styles.headerRight}>
           <Pressable style={styles.headerIcon}>
