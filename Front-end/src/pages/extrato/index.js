@@ -5,6 +5,20 @@ import { Ionicons } from '@expo/vector-icons';
 import styles from './style';
 
 export default function Extrato({ route, navigation }) {
+  const [carregando, setCarregando] = useState(false);
+
+
+  const pegarDados = async () => {
+    try {
+      const dados = await axios.get(`http://127.0.0.1:8000/extrato/{$id}`);
+      console.log('Resposta da API para o get na tela extrato:', dados.data);
+      setUsuario(dados.data);
+
+    } catch (erro) {
+      console.error('Erro na requisição:', erro);
+      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
+    }
+  };
   const valores = [
     {
         id: '1',

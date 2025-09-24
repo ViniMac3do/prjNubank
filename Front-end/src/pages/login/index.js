@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
-import { ImageBackground, View, Text, Pressable, Modal, TextInput } from 'react-native';
+import { ImageBackground, View, Text, Pressable, Modal, TextInput, Button } from 'react-native';
 import styles from './style.js';
 import React, { useState } from 'react';
 
@@ -33,31 +34,29 @@ export default function Login({ navigation }) {
     setCarregando(true);
 
     try {
-      const resposta = await axios.get('http://127.0.0.1:8000/api/usuarios'); // ← Substitua pelo seu IP local
+      const resposta = await axios.post('http://127.0.0.1:8000/api/login', {
+      emailUsuario: email, 
+      senhaUsuario: senha, 
+      });
 
-      console.log('Resposta da API:', resposta.data);
-
-      const usuarios = resposta.data;
-
-      const usuarioEncontrado = usuarios.find(
-        (usuario) =>
-          usuario.email === email &&
-          usuario.senha === senha
-      );
-
-      if (usuarioEncontrado) {
-        Alert.alert('Sucesso', 'Login bem-sucedido!');
-        setModalVisible(false);
-        navigation.navigate('Home', { emailUsuario: email });
-      } else {
-        Alert.alert('Erro', 'Email ou senha incorretos.');
+      if (resposta.data.access_token) {
+       await AsyncStorage.setItem('user_token', resposta.data.access_token);
+       setModalVisible(false);
+       Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        navigation.navigate('Home');
       }
     } catch (erro) {
-      console.error('Erro na requisição:', erro);
-      Alert.alert('Erro', 'Erro ao conectar com o servidor.');
-    }
+      if (erro.response && erro.response.data.erro) {
+      Alert.alert('Erro no Login', erro.response.data.erro);
+      } else {
 
-    setCarregando(false);
+      // Mostra um erro genérico se for um problema de conexão
+      console.error('Erro na requisição:', erro);
+      Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+    }
+    } finally {
+      setCarregando(false);
+    }
   };
   
 
@@ -113,7 +112,11 @@ export default function Login({ navigation }) {
                   verificarLogin();
                 }}
               >
-                <Text style={styles.loginButtonText}>Logar</Text>
+                <Button
+                title={carregando ? 'Logando...' : 'Login'}
+                style={styles.loginButtonText}
+                color="#8309d0"
+                />
               </Pressable>
 
               <Pressable onPress={() => setModalVisible(false)}>
