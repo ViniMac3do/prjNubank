@@ -7,6 +7,7 @@ import Login from './src/pages/login/index.js';
 import Cadastro from './src/pages/cadastro/index.js';
 import Home from './src/pages/home/index.js';
 import Extrato from './src/pages/extrato/index.js';
+import EditarPerfil from './src/pages/EditarPerfil/index.js';
 
 //Auth para englobar o projeto com as informacoes do usuario logado
 import { AuthProvider } from './src/contexts/AuthContext';
@@ -25,6 +26,7 @@ function Main() {
           <Stack.Screen name="Cadastro" component={Cadastro} />
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Extrato" component={Extrato} />
+          <Stack.Screen name="EditarPerfil" component={EditarPerfil} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
