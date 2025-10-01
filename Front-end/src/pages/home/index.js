@@ -21,13 +21,13 @@ export default function Home({ route, navigation }) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header com perfil */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <Pressable style={styles.headerLeft} onPress={() => navigation.navigate('EditarPerfil')}>
           <Image
             source={{ uri: user?.foto ?? 'https://i.pravatar.cc/150?img=3' }}
             style={styles.avatar}
           />
           <Text style={styles.username}>Olá, {user?.nome ?? 'Usuário'}</Text>
-        </View>
+        </Pressable>
         <View style={styles.headerRight}>
           <Pressable style={styles.headerIcon}>
             <Ionicons name="search" size={24} color="#fff" />
