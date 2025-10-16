@@ -4,20 +4,32 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Usuario;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Support\Facades\Hash; 
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage; // Facade para manipulação de arquivos
 
 class UsuarioController extends Controller
 {
-   
 
-    private function checkDuplicates(Request $request)
+    private function checkDuplicates(Request $request, $id = null)
     {
-        if (Usuario::where('email', $request->input('emailUsuario'))->exists()) {
+        $email = $request->input('emailUsuario');
+        $cpf = $request->input('cpfUsuario');
+
+        // Constrói a query para e-mail
+        $queryEmail = Usuario::where('email', $email);
+        if ($id) {
+            $queryEmail->where('id', '!=', $id);
+        }
+        if ($queryEmail->exists()) {
             return response()->json(['erro' => 'E-mail já está cadastrado.'], 400);
         }
 
-        if (Usuario::where('cpf', $request->input('cpfUsuario'))->exists()) {
+        // Constrói a query para CPF
+        $queryCpf = Usuario::where('cpf', $cpf);
+        if ($id) {
+            $queryCpf->where('id', '!=', $id);
+        }
+        if ($queryCpf->exists()) {
             return response()->json(['erro' => 'CPF já está cadastrado.'], 400);
         }
 
@@ -37,10 +49,9 @@ class UsuarioController extends Controller
         $usuario = Usuario::where('email', $email)->first();
 
         if (!$usuario || !Hash::check($senha, $usuario->senha)) {
-            return response()->json(['erro' => 'Credenciais inválidas.'], 401); // 401 = Unauthorized
+            return response()->json(['erro' => 'Credenciais inválidas.'], 401);
         }
 
-        // Se o login estiver correto, crie e retorne um token de acesso
         $token = $usuario->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -54,20 +65,18 @@ class UsuarioController extends Controller
         ]);
     }
 
-      public function userProfile(Request $request)
+    public function userProfile(Request $request)
     {
         return response()->json($request->user());
     }
 
     public function store(Request $request)
     {
-        //This function consists of executing verification for duplicated variables
         $check = $this->checkDuplicates($request);
         if($check){
             return $check;
         }
 
-        // Cria um novo usuário com base nos dados recebidos da requisição
         $usuario = Usuario::create([
             'nome' => $request->input('nomeUsuario'),
             'cpf' => $request->input('cpfUsuario'),
@@ -78,81 +87,103 @@ class UsuarioController extends Controller
             'senha' => Hash::make($request->input('senhaUsuario')),
         ]);
 
-        // Retorna o usuário criado em formato JSON com status 201 (Criado)
         return response()->json($usuario, 201);
     }
 
-    // Listar todos os usuários cadastrados
     public function index()
     {
-        // Busca todos os registros da tabela 'usuarios'
         $usuarios = Usuario::all();
-
-        // Retorna todos os usuários em JSON
         return response()->json($usuarios);
     }
 
-    // Buscar um único usuário pelo ID
     public function show($id)
     {
-        // Procura o usuário com base no ID
         $usuario = Usuario::find($id);
-
-        // Se não encontrar, retorna erro 404 com mensagem
         if (!$usuario) {
             return response()->json(['mensagem' => 'Usuário não encontrado (id)'], 404);
         }
-
-        // Retorna os dados do usuário encontrado
         return response()->json($usuario);
     }
 
-    public function buscarPorEmail($email){
-
-        if (!$email) {
-            return response()->json(['error' => 'Parâmetro email é obrigatório '], 400);
-        }
-
-        $usuario = Usuario::where('email', $email)->first();
-
-        if (!$usuario) {
-            return response()->json(['error' => 'Usuário não encontrado (email)'], 404);
-        }
-
-        return response()->json($usuario);
-    }
-
-    public function update(Request $request, $id)
+    public function updateProfilePhoto(Request $request, $id)
     {
-        //This function consists of executing verification for duplicated variables
-        $check = $this->checkDuplicates($request);
-        if($check){
-            return $check;
-        }
+        $request->validate([
+            'foto' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
 
         $usuario = Usuario::find($id);
         if (!$usuario) {
-            return response()->json(['mensagem' => 'Usuário não encontrado para atualização'], 404);
+            return response()->json(['mensagem' => 'Usuário não encontrado'], 404);
         }
 
-            $usuario->nome = $request->input('nomeUsuario', $usuario->nome);
-            $usuario->cpf = $request->input('cpfUsuario', $usuario->cpf);
-            $usuario->cep = $request->input('cepUsuario', $usuario->cep);
-            $usuario->foto = $request->input('fotoUsuario', $usuario->foto);
-            $usuario->genero = $request->input('generoUsuario', $usuario->genero);
-            $usuario->email = $request->input('emailUsuario', $usuario->email);
-            $usuario->senha = $request->input('senhaUsuario', $usuario->senha); 
+        // Deleta a foto antiga do storage, se ela existir
+        if ($usuario->foto) {
+            // Extrai o caminho relativo da URL completa para deletar
+            $path = str_replace(url('/storage'), '', $usuario->foto);
+            Storage::disk('public')->delete($path);
+        }
 
-            $usuario->save(); //save in the database
+        // Salva a nova foto e obtém o caminho
+        $path = $request->file('foto')->store('fotos_perfil', 'public');
 
-        
-            return response()->json($usuario);
+        // Gera a URL completa para a foto ("storage link")
+        $url = Storage::disk('public')->url($path);
+
+        // Retorna a URL para o front-end
+        return response()->json([
+            'mensagem' => 'Foto atualizada com sucesso!',
+            'url' => $url
+        ]);
     }
+
+    
+public function update(Request $request, $id)
+{
+    $usuario = Usuario::find($id);
+    if (!$usuario) {
+        return response()->json(['mensagem' => 'Usuário não encontrado'], 404);
+    }
+
+    // Validação de email e cpf duplicados
+    if ($request->has('emailUsuario') && $request->emailUsuario !== $usuario->email) {
+        if (Usuario::where('email', $request->emailUsuario)->where('id', '!=', $id)->exists()) {
+            return response()->json(['erro' => 'Este e-mail já está em uso'], 400);
+        }
+    }
+    if ($request->has('cpfUsuario') && $request->cpfUsuario !== $usuario->cpf) {
+        if (Usuario::where('cpf', $request->cpfUsuario)->where('id', '!=', $id)->exists()) {
+            return response()->json(['erro' => 'Este CPF já está em uso'], 400);
+        }
+    }
+
+    // Atualiza campos
+    $usuario->nome = $request->nomeUsuario ?? $usuario->nome;
+    $usuario->cep = $request->cepUsuario ?? $usuario->cep;
+    $usuario->genero = $request->generoUsuario ?? $usuario->genero;
+    $usuario->email = $request->emailUsuario ?? $usuario->email;
+
+    // Senha
+    if ($request->filled('senhaUsuario')) {
+        $usuario->senha = Hash::make($request->senhaUsuario);
+    }
+
+    // Imagem
+    if ($request->hasFile('fotoUsuario')) {
+        $arquivo = $request->file('fotoUsuario');
+        $nomeArquivo = time() . '_' . $arquivo->getClientOriginalName();
+        $arquivo->move(public_path('uploads'), $nomeArquivo);
+        $usuario->foto = url('uploads/' . $nomeArquivo);
+    }
+
+    $usuario->save();
+
+    return response()->json($usuario);
+}
+
 
     public function delete($id)
     {
         $usuario = Usuario::find($id);
-
         if (!$usuario) {
             return response()->json(['mensagem' => 'Usuário não encontrado.'], 404);
         }
@@ -160,8 +191,5 @@ class UsuarioController extends Controller
         $usuario->delete();
 
         return response()->json(['mensagem' => "Usuário ({$usuario->nome}) deletado com sucesso."], 200);
-
     }
-
-
 }

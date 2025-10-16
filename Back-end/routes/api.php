@@ -16,6 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rotas de Usuário
     Route::get('/usuarios', [UsuarioController::class, 'index']);
     Route::put('/usuarios/{id}', [UsuarioController::class, 'update']);
+    Route::post('/usuarios/{id}/upload-foto', [UsuarioController::class, 'updateProfilePhoto']);
     Route::delete('/usuarios/{id}', [UsuarioController::class, 'delete']);
     Route::get('/user', [UsuarioController::class, 'userProfile']);
 

@@ -1,44 +1,37 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
-// Cria o Contexto de Autenticação, que funcionará como um contêiner global para o estado de autenticação.
 const AuthContext = createContext();
 
-// O AuthProvider é um componente que envolve partes da aplicação que precisam de acesso ao contexto de autenticação.
 export const AuthProvider = ({ children }) => {
-  // 'user' armazena os dados do usuário logado (ex: nome, email). Inicia como nulo.
-  const [user, setUser] = useState(null);
-  // 'token' armazena o token de autenticação JWT. Inicia como nulo.
-  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null); 
+  const [token, setToken] = useState(null); 
 
-  // Função para realizar o login. Armazena os dados do usuário e o token no estado e no AsyncStorage.
-  // O AsyncStorage guarda os dados localmente no dispositivo, permitindo que o usuário continue logado mesmo após fechar o app.
+  // Função para logar o usuário e salvar dados no estado e AsyncStorage
   const loginContext = async (userData, userToken) => {
-    setUser(userData);
-    setToken(userToken);
-    await AsyncStorage.setItem('user_token', userToken);
-    await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+    setUser(userData); 
+    setToken(userToken); 
+    await AsyncStorage.setItem('user_token', userToken); 
+    await AsyncStorage.setItem('user_data', JSON.stringify(userData)); 
   };
 
-  // Função para realizar o logout. Limpa o estado e remove os dados do AsyncStorage.
+  // Função para deslogar o usuário, limpando estado e storage
   const signOut = async () => {
     setUser(null);
     setToken(null);
-    await AsyncStorage.removeItem('user_token');
-    await AsyncStorage.removeItem('user_data');
+    await AsyncStorage.multiRemove(['user_token', 'user_data']); 
   };
 
-  // useEffect é executado uma vez quando o AuthProvider é montado.
-  // Ele tenta carregar os dados do usuário e o token do AsyncStorage para restaurar a sessão.
+  // Carrega dados persistidos ao iniciar o app, mantendo o usuário logado se houver
   useEffect(() => {
     const loadStoredData = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem('user_token');
-        const storedUser = await AsyncStorage.getItem('user_data');
-        // Se ambos existirem, o estado é atualizado e o usuário é considerado logado.
+        const storedToken = await AsyncStorage.getItem('user_token'); 
+        const storedUser = await AsyncStorage.getItem('user_data'); 
         if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          setToken(storedToken); 
+          setUser(JSON.parse(storedUser)); 
         }
       } catch (e) {
         console.error("Falha ao carregar dados do AuthContext", e);
@@ -47,23 +40,34 @@ export const AuthProvider = ({ children }) => {
     loadStoredData();
   }, []);
 
-  // Função para atualizar os dados do usuário.
-  // Ela atualiza o estado 'user' e também o 'user_data' no AsyncStorage para manter a persistência.
-  const updateUser = async (newUserData) => {
-    setUser(newUserData);
-    await AsyncStorage.setItem('user_data', JSON.stringify(newUserData));
+  // Função para buscar os dados mais recentes do usuário na API
+  const fetchUser = async () => {
+    if (user && token) { 
+      try {
+        const response = await axios.get(`http://127.0.0.1:8000/api/usuarios/${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const updatedUser = response.data;
+        setUser(updatedUser); 
+        await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser)); 
+      } catch (error) {
+        console.error("Erro ao recarregar os dados do usuário:", error);
+        // Se o token for inválido (erro 401), desloga o usuário
+        if (error.response?.status === 401) {
+          signOut();
+        }
+      }
+    }
   };
 
-  // O Provider expõe os valores (user, token) e as funções (loginContext, signOut, updateUser) para todos os componentes filhos.
   return (
-    <AuthContext.Provider value={{ user, token, loginContext, signOut, updateUser }}>
+    <AuthContext.Provider value={{ user, token, loginContext, signOut, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook customizado 'useAuth' para simplificar o acesso ao contexto em outros componentes.
-// Em vez de usar `useContext(AuthContext)` toda vez, podemos apenas chamar `useAuth()`.
+// Hook para facilitar o uso do contexto em qualquer componente
 export const useAuth = () => {
   return useContext(AuthContext);
 };
