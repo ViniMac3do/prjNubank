@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, Pressable, ScrollView, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { 
+  View, 
+  Text, 
+  Image, 
+  Pressable, 
+  ScrollView, 
+  Alert, 
+  ActivityIndicator, 
+  TextInput 
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -19,7 +28,6 @@ const EditarPerfil = ({ navigation }) => {
   const [cepUsuario, setCepUsuario] = useState('');
   const [generoUsuario, setGeneroUsuario] = useState('');
   const [senhaUsuario, setSenhaUsuario] = useState('');
-
 
   const api = axios.create({
     baseURL: API_URL,
@@ -61,70 +69,91 @@ const EditarPerfil = ({ navigation }) => {
 
   const tirarFoto = async () => {
     if (!(await solicitarPermissao())) return;
-    const resultado = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 1 });
+    const resultado = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1
+    });
     if (!resultado.canceled) setNewImageInfo(resultado.assets[0].uri);
   };
 
   const escolherGaleria = async () => {
     if (!(await solicitarPermissao())) return;
-    const resultado = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 1 });
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1
+    });
     if (!resultado.canceled) setNewImageInfo(resultado.assets[0].uri);
   };
 
-const atualizar = async () => {
-  try {
-    setIsLoading(true);
+  const atualizar = async () => {
+    try {
+      setIsLoading(true);
 
-    const dadosUsuario = {
-      nomeUsuario,
-      emailUsuario,
-      cepUsuario,
-      generoUsuario,
-    };
+      const dadosUsuario = {
+        nomeUsuario,
+        emailUsuario,
+        cepUsuario,
+        generoUsuario,
+      };
 
-    if (senhaUsuario) dadosUsuario.senhaUsuario = senhaUsuario;
+      if (senhaUsuario) dadosUsuario.senhaUsuario = senhaUsuario;
 
-    const response = await axios.put(
-      `http://127.0.0.1:8000/api/usuarios/${user.id}`,
-      dadosUsuario,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.put(
+        `${API_URL}/usuarios/${user.id}`,
+        dadosUsuario,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.email) {
+        Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+        fetchUser();
+        navigation.goBack();
+      } else {
+        Alert.alert('Erro', 'Erro ao atualizar perfil. Tente novamente!');
       }
-    );
-
-    if (response.data && response.data.email) {
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
-      fetchUser();
-      navigation.goBack();
-    } else {
-      Alert.alert('Erro', 'Erro ao atualizar perfil. Tente novamente!');
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error.response?.data || error.message);
+      Alert.alert('Erro', error.response?.data?.erro || 'Não foi possível atualizar o perfil.');
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Erro ao atualizar perfil:', error.response?.data || error.message);
-    Alert.alert('Erro', error.response?.data?.erro || 'Não foi possível atualizar o perfil.');
-  } finally {
-    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return (
+      <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
+        <ActivityIndicator size="large" color="#820AD1" />
+        <Text>Carregando dados...</Text>
+      </View>
+    );
   }
-};
-
-
-
-  if (isLoading) return (
-    <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
-      <ActivityIndicator size="large" color="#820AD1" />
-      <Text>Carregando dados...</Text>
-    </View>
-  );
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Pressable style={styles.profileAvatarWrapper} onPress={escolherGaleria} onLongPress={tirarFoto}>
-          <Image style={styles.profileAvatar} source={newImageInfo ? { uri: newImageInfo } : fotoUrl ? { uri: fotoUrl } : require('../../../assets/icon.png')} />
+        <Pressable 
+          style={styles.profileAvatarWrapper} 
+          onPress={escolherGaleria} 
+          onLongPress={tirarFoto}
+        >
+          <Image 
+            style={styles.profileAvatar} 
+            source={
+              newImageInfo
+                ? { uri: newImageInfo }
+                : fotoUrl
+                ? { uri: fotoUrl }
+                : require('../../../assets/icon.png')
+            } 
+          />
           <View style={styles.cameraIconContainer}>
             <Ionicons name="camera" size={20} color="#333" />
           </View>
@@ -136,27 +165,55 @@ const atualizar = async () => {
 
         <View style={styles.inputRow}>
           <Ionicons name="person-outline" size={22} color="#820AD1" style={styles.inputIcon} />
-          <TextInput style={styles.inputValue} value={nomeUsuario} onChangeText={setNomeUsuario} placeholder="Nome completo" />
+          <TextInput
+            style={styles.inputValue}
+            value={nomeUsuario}
+            onChangeText={setNomeUsuario}
+            placeholder="Nome completo"
+          />
         </View>
 
         <View style={styles.inputRow}>
           <Ionicons name="mail-outline" size={22} color="#820AD1" style={styles.inputIcon} />
-          <TextInput style={styles.inputValue} value={emailUsuario} onChangeText={setEmailUsuario} placeholder="Email" keyboardType="email-address" />
+          <TextInput
+            style={styles.inputValue}
+            value={emailUsuario}
+            onChangeText={setEmailUsuario}
+            placeholder="Email"
+            keyboardType="email-address"
+          />
         </View>
 
         <View style={styles.inputRow}>
           <Ionicons name="location-outline" size={22} color="#820AD1" style={styles.inputIcon} />
-          <TextInput style={styles.inputValue} value={cepUsuario} onChangeText={setCepUsuario} placeholder="CEP" keyboardType="numeric" />
+          <TextInput
+            style={styles.inputValue}
+            value={cepUsuario}
+            onChangeText={setCepUsuario}
+            placeholder="CEP"
+            keyboardType="numeric"
+          />
         </View>
 
         <View style={styles.inputRow}>
           <Ionicons name="transgender-outline" size={22} color="#820AD1" style={styles.inputIcon} />
-          <TextInput style={styles.inputValue} value={generoUsuario} onChangeText={setGeneroUsuario} placeholder="Gênero" />
+          <TextInput
+            style={styles.inputValue}
+            value={generoUsuario}
+            onChangeText={setGeneroUsuario}
+            placeholder="Gênero"
+          />
         </View>
 
         <View style={styles.inputRow}>
           <Ionicons name="lock-closed-outline" size={22} color="#820AD1" style={styles.inputIcon} />
-          <TextInput style={styles.inputValue} value={senhaUsuario} onChangeText={setSenhaUsuario} placeholder="Senha" secureTextEntry />
+          <TextInput
+            style={styles.inputValue}
+            value={senhaUsuario}
+            onChangeText={setSenhaUsuario}
+            placeholder="Senha"
+            secureTextEntry
+          />
         </View>
 
         <View style={styles.actionButtonsContainer}>

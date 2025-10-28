@@ -1,13 +1,12 @@
 // src/pages/EditarPerfil/styles.js
-
 import { StyleSheet } from 'react-native';
 
-const NUBANK_PURPLE = '#8309d0';
+const NUBANK_PURPLE = '#820AD1';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f1f5', // Um cinza claro para o fundo geral
+    backgroundColor: '#f0f1f5', // Cinza claro para o fundo geral
   },
   header: {
     backgroundColor: NUBANK_PURPLE,
@@ -22,7 +21,7 @@ const styles = StyleSheet.create({
   profileAvatar: {
     width: 120,
     height: 120,
-    borderRadius: 60, // Metade da largura/altura para um círculo perfeito
+    borderRadius: 60,
     borderWidth: 3,
     borderColor: '#fff',
   },
@@ -76,44 +75,40 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 2,
   },
-   actionButtonsContainer: {
+  actionButtonsContainer: {
     flexDirection: 'row',
     marginTop: 20,
     width: '100%',
   },
-
-  // Botão Voltar (novo)
   backButton: {
     flex: 1,
-    backgroundColor: '#e0e0e0', // Cor cinza claro
+    backgroundColor: '#e0e0e0',
     borderRadius: 12,
     padding: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10, // Espaço entre os botões
+    marginRight: 10,
   },
   backButtonText: {
-    color: '#333', // Texto escuro
+    color: '#333',
     fontSize: 16,
     fontWeight: 'bold',
   },
-
-  // Botão Salvar (ajustado para funcionar em conjunto com o botão Voltar)
   saveButton: {
     flex: 1,
-    backgroundColor: '#820AD1',
+    backgroundColor: NUBANK_PURPLE,
     borderRadius: 12,
     padding: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 10, // Espaço entre os botões
+    marginLeft: 10,
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-   modalOverlay: {
+  modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -157,7 +152,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#820AD1', // Cor roxa solicitada
+    backgroundColor: NUBANK_PURPLE,
     alignItems: 'center',
   },
   modalButtonText: {
