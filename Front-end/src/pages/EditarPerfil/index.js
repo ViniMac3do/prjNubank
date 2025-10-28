@@ -1,160 +1,232 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, Pressable, Image, Alert, ScrollView, Modal, TextInput, TouchableWithoutFeedback } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  Image, 
+  Pressable, 
+  ScrollView, 
+  Alert, 
+  ActivityIndicator, 
+  TextInput 
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useAuth } from '../../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import styles from './style';
-import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from './../../contexts/AuthContext';
 
-// Componente reutilizável para cada linha de informação
-const InfoRow = ({ icon, label, value, onPress }) => (
-  <Pressable style={styles.inputRow} onPress={onPress}>
-    <Ionicons name={icon} size={24} color="#820AD1" style={styles.inputIcon} />
-    <Text style={styles.inputLabel}>{label}</Text>
-    <Text style={styles.inputValue}>{value}</Text>
-    <Ionicons name="chevron-forward-outline" size={22} color="#ccc" />
-  </Pressable>
-);
+const EditarPerfil = ({ navigation }) => {
+  const { user, token, fetchUser } = useAuth();
+  const API_URL = 'http://127.0.0.1:8000/api';
 
-export default function EditarPerfil({ navigation }) {
-  const { user, updateUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [newImageInfo, setNewImageInfo] = useState(null);
 
-  // Estados para os campos do formulário
-  const [nome, setNome] = useState(user?.nome || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [cep, setCep] = useState(user?.cep || 'Não informado');
-  const [genero, setGenero] = useState(user?.genero || 'Não informado');
-  const [foto, setFoto] = useState(user?.foto || null);
+  const [fotoUrl, setFotoUrl] = useState('');
+  const [nomeUsuario, setNomeUsuario] = useState('');
+  const [emailUsuario, setEmailUsuario] = useState('');
+  const [cepUsuario, setCepUsuario] = useState('');
+  const [generoUsuario, setGeneroUsuario] = useState('');
+  const [senhaUsuario, setSenhaUsuario] = useState('');
 
-  // Estados para o controle do Modal
-  const [modalVisible, setModalVisible] = useState(false);
-  const [currentField, setCurrentField] = useState(null);
-  const [tempValue, setTempValue] = useState('');
+  const api = axios.create({
+    baseURL: API_URL,
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-  // Hook para resetar o estado do formulário sempre que a tela ganhar foco
-  useFocusEffect(
-    useCallback(() => {
-      setNome(user?.nome || '');
-      setEmail(user?.email || '');
-      setCep(user?.cep || 'Não informado');
-      setGenero(user?.genero || 'Não informado');
-      setFoto(user?.foto || null);
-    }, [user])
-  );
+  useEffect(() => {
+    const carregarDadosDoUsuario = async () => {
+      try {
+        const response = await api.get(`/usuarios/${user.id}`);
+        const { nome, email, cep, genero, foto } = response.data;
 
-  const handleEdit = (field, value, setter) => {
-    setCurrentField({ field, setter });
-    setTempValue(value);
-    setModalVisible(true);
-  };
+        setNomeUsuario(nome);
+        setEmailUsuario(email);
+        setCepUsuario(cep);
+        setGeneroUsuario(genero);
+        setFotoUrl(foto);
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error.response?.data || error.message);
+        Alert.alert('Erro', 'Não foi possível carregar os dados do perfil.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const saveFieldChange = () => {
-    if (currentField) {
-      currentField.setter(tempValue);
+    if (user && user.id && token) carregarDadosDoUsuario();
+    else navigation.goBack();
+  }, []);
+
+  const solicitarPermissao = async () => {
+    const camera = await ImagePicker.requestCameraPermissionsAsync();
+    const galeria = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (camera.status !== 'granted' || galeria.status !== 'granted') {
+      Alert.alert('Permissão negada', 'É necessário permitir acesso à câmera e galeria');
+      return false;
     }
-    setModalVisible(false);
-    setCurrentField(null);
-  };
-
-  const escolherDaGaleria = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setFoto(result.assets[0].uri);
-    }
+    return true;
   };
 
   const tirarFoto = async () => {
-    let result = await ImagePicker.launchCameraAsync({
+    if (!(await solicitarPermissao())) return;
+    const resultado = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
+      quality: 1
     });
-    if (!result.canceled) {
-      setFoto(result.assets[0].uri);
-    }
+    if (!resultado.canceled) setNewImageInfo(resultado.assets[0].uri);
   };
 
-  const showImageOptions = () => {
-    Alert.alert("Alterar Foto de Perfil", "Escolha uma opção:",
-      [{ text: "Tirar Foto", onPress: tirarFoto }, { text: "Escolher da Galeria", onPress: escolherDaGaleria }, { text: "Cancelar", style: "cancel" }]
-    );
+  const escolherGaleria = async () => {
+    if (!(await solicitarPermissao())) return;
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1
+    });
+    if (!resultado.canceled) setNewImageInfo(resultado.assets[0].uri);
   };
 
-  const handleSaveChanges = async () => {
-    const updatedUserData = { ...user, nome, email, cep, genero, foto };
+  const atualizar = async () => {
     try {
-      await updateUser(updatedUserData);
-      Alert.alert('Sucesso', 'Seu perfil foi atualizado.');
-      navigation.goBack();
+      setIsLoading(true);
+
+      const dadosUsuario = {
+        nomeUsuario,
+        emailUsuario,
+        cepUsuario,
+        generoUsuario,
+      };
+
+      if (senhaUsuario) dadosUsuario.senhaUsuario = senhaUsuario;
+
+      const response = await axios.put(
+        `${API_URL}/usuarios/${user.id}`,
+        dadosUsuario,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.email) {
+        Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+        fetchUser();
+        navigation.goBack();
+      } else {
+        Alert.alert('Erro', 'Erro ao atualizar perfil. Tente novamente!');
+      }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
+      console.error('Erro ao atualizar perfil:', error.response?.data || error.message);
+      Alert.alert('Erro', error.response?.data?.erro || 'Não foi possível atualizar o perfil.');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
+        <ActivityIndicator size="large" color="#820AD1" />
+        <Text>Carregando dados...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(!modalVisible)}
-      >
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.centeredView}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalView}>
-                <Text style={styles.modalTitle}>Editar {currentField?.field}</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  onChangeText={setTempValue}
-                  value={tempValue}
-                  autoFocus={true}
-                />
-                <View style={styles.modalButtonContainer}>
-                  <Pressable
-                    style={[styles.modalButton, styles.buttonCancel]}
-                    onPress={() => setModalVisible(!modalVisible)}
-                  >
-                    <Text style={styles.textStyleCancel}>Cancelar</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.modalButton, styles.buttonSave]}
-                    onPress={saveFieldChange}
-                  >
-                    <Text style={styles.textStyle}>Salvar</Text>
-                  </Pressable>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
+      <View style={styles.header}>
+        <Pressable 
+          style={styles.profileAvatarWrapper} 
+          onPress={escolherGaleria} 
+          onLongPress={tirarFoto}
+        >
+          <Image 
+            style={styles.profileAvatar} 
+            source={
+              newImageInfo
+                ? { uri: newImageInfo }
+                : fotoUrl
+                ? { uri: fotoUrl }
+                : require('../../../assets/icon.png')
+            } 
+          />
+          <View style={styles.cameraIconContainer}>
+            <Ionicons name="camera" size={20} color="#333" />
           </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      <View style={styles.header} />
-
-      <View style={styles.avatarContainer}>
-        <Image source={{ uri: foto || 'https://i.pravatar.cc/150?img=3' }} style={styles.avatar} />
-        <Pressable style={styles.cameraIcon} onPress={showImageOptions}>
-          <Ionicons name="camera" size={24} color="#820AD1" />
         </Pressable>
       </View>
 
       <View style={styles.formContainer}>
-        <InfoRow icon="person-outline" label="Nome completo" value={nome} onPress={() => handleEdit('Nome', nome, setNome)} />
-        <InfoRow icon="mail-outline" label="E-mail" value={email} onPress={() => handleEdit('E-mail', email, setEmail)} />
-        <InfoRow icon="location-outline" label="CEP" value={cep} onPress={() => handleEdit('CEP', cep, setCep)} />
-        <InfoRow icon="transgender-outline" label="Gênero" value={genero} onPress={() => handleEdit('Gênero', genero, setGenero)} />
-        <InfoRow icon="lock-closed-outline" label="Alterar Senha" value="" onPress={() => navigation.navigate('AlterarSenha')} />
-      </View>
+        <Text style={styles.userName}>{nomeUsuario}</Text>
 
-      <Pressable style={styles.saveButton} onPress={handleSaveChanges}>
-        <Text style={styles.saveButtonText}>Salvar</Text>
-      </Pressable>
+        <View style={styles.inputRow}>
+          <Ionicons name="person-outline" size={22} color="#820AD1" style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputValue}
+            value={nomeUsuario}
+            onChangeText={setNomeUsuario}
+            placeholder="Nome completo"
+          />
+        </View>
+
+        <View style={styles.inputRow}>
+          <Ionicons name="mail-outline" size={22} color="#820AD1" style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputValue}
+            value={emailUsuario}
+            onChangeText={setEmailUsuario}
+            placeholder="Email"
+            keyboardType="email-address"
+          />
+        </View>
+
+        <View style={styles.inputRow}>
+          <Ionicons name="location-outline" size={22} color="#820AD1" style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputValue}
+            value={cepUsuario}
+            onChangeText={setCepUsuario}
+            placeholder="CEP"
+            keyboardType="numeric"
+          />
+        </View>
+
+        <View style={styles.inputRow}>
+          <Ionicons name="transgender-outline" size={22} color="#820AD1" style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputValue}
+            value={generoUsuario}
+            onChangeText={setGeneroUsuario}
+            placeholder="Gênero"
+          />
+        </View>
+
+        <View style={styles.inputRow}>
+          <Ionicons name="lock-closed-outline" size={22} color="#820AD1" style={styles.inputIcon} />
+          <TextInput
+            style={styles.inputValue}
+            value={senhaUsuario}
+            onChangeText={setSenhaUsuario}
+            placeholder="Senha"
+            secureTextEntry
+          />
+        </View>
+
+        <View style={styles.actionButtonsContainer}>
+          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.backButtonText}>Voltar</Text>
+          </Pressable>
+          <Pressable style={styles.saveButton} onPress={atualizar}>
+            <Text style={styles.saveButtonText}>Salvar Alterações</Text>
+          </Pressable>
+        </View>
+      </View>
     </ScrollView>
   );
-}
+};
+
+export default EditarPerfil;

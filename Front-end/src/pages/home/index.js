@@ -1,29 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
+import { useIsFocused } from '@react-navigation/native';
 import { View, Text, Image, Pressable, FlatList, ScrollView, Alert } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import styles from './style';
 import { useAuth } from './../../contexts/AuthContext'; 
 
 export default function Home({ route, navigation }) {
-  const { user, signOut } = useAuth();
-  const [showBalance, setShowBalance] = useState(false);
-  const toggleBalance = () => setShowBalance(!showBalance);
-  const [usuario, setUsuario] = useState(null);
 
+  const [showBalance, setShowBalance] = useState(false);
+  const toggleBalance = () => setShowBalance(!showBalance); //Futura funcao de mostrar valor que ha na conta
+  const [usuario, setUsuario] = useState(null);
+  const { user, token, signOut, fetchUser } = useAuth();
+  const isFocused = useIsFocused();
+
+  //Funcao para uma futura aba de logOut
   const handleLogout = () => {
     signOut();
-    navigation.replace('Login'); // Navega de volta para o Login após sair
+    navigation.replace('Login'); 
+  };
+
+  //Funcao puxando o foco e o fetch user da AuthContext para assimilar o token do usuario
+  useEffect(() => {
+    if (isFocused && fetchUser) {
+      console.log("Tela Home em foco, recarregando dados do usuário...");
+      fetchUser(); 
+    }
+  }, [isFocused]);
+
+  //Funcao que verifica se todos os dados assimilados do tokens estao corretos para navegar pra edicao
+  const irParaPerfil = () => {
+    if (user && user.id && token) {
+      navigation.navigate(
+        'EditarPerfil', 
+        { 
+          userId: user.id, 
+          token: token 
+        }
+      );
+    } else {
+      console.log("Dados do usuário (ID ou Token) faltando. Não é possível navegar.");
+      Alert.alert("Erro", "Não foi possível carregar os dados do perfil. Tente fazer login novamente.");
+    };
   };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header com perfil */}
+      {/*Header*/}
       <View style={styles.header}>
-        <Pressable style={styles.headerLeft} onPress={() => navigation.navigate('EditarPerfil')}>
+        <Pressable style={styles.headerLeft} onPress={irParaPerfil}>
           <Image
-            source={{ uri: user?.foto ?? 'https://i.pravatar.cc/150?img=3' }}
+            source={user?.foto ? { uri: user.foto } : require('../../../assets/imagem-do-usuario-com-fundo-preto.png')}
             style={styles.avatar}
           />
           <Text style={styles.username}>Olá, {user?.nome ?? 'Usuário'}</Text>

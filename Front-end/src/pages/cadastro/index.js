@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Pressable, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, Pressable, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
-import { Image } from 'expo-image';
+import * as FileSystem from 'expo-file-system';
 import axios from 'axios'; 
 import styles from './style';
 
@@ -12,20 +12,17 @@ const Cadastro = ({ navigation }) => {
   const [cepUsuario, setCepUsuario] = useState('');
   const [fotoUsuario, setFotoUsuario] = useState('');
   const [generoUsuario, setGeneroUsuario] = useState('');
-
   const [emailUsuario, setEmailUsuario] = useState('');
   const [senhaUsuario, setSenhaUsuario] = useState('');
-
   const [carregando, setCarregando] = useState(false); 
   const [errorMessage, setErrorMessage] = useState(''); 
 
-   const validarDados = () => {
+  const validarDados = () => {
     if (
       !nomeUsuario ||
       !cpfUsuario ||
       !cepUsuario ||
       !generoUsuario ||
-      !fotoUsuario ||
       !senhaUsuario ||
       !emailUsuario
     ) {
@@ -82,17 +79,18 @@ const Cadastro = ({ navigation }) => {
       end={{ x: 0, y: 1 }}
       style={styles.container}
     >
-      {/* Logo */}
       <Animatable.View animation="fadeInDown" duration={1000}>
-        <Image source={require('../../../assets/logo.png')} style={styles.logo} />
+        <Image
+          source={
+            fotoUsuario ? { uri: fotoUsuario } : require('../../../assets/imagem-do-usuario-com-fundo-preto.png')
+          }
+          style={styles.logo}
+        />
       </Animatable.View>
 
-      {/* Formulário */}
       <Animatable.View animation="fadeInUp" duration={1000} delay={300}>
         <Text style={styles.title}>Cadastro</Text>
 
-
-        {/*Coleta de dados para o cadastro */}
         <TextInput
           style={styles.input}
           placeholder="Nome completo"
@@ -121,13 +119,6 @@ const Cadastro = ({ navigation }) => {
         />
         <TextInput
           style={styles.input}
-          placeholder="Foto"
-          value={fotoUsuario}
-          onChangeText={setFotoUsuario}
-        />
-
-        <TextInput
-          style={styles.input}
           placeholder="Email"
           value={emailUsuario}
           onChangeText={setEmailUsuario}
@@ -141,7 +132,6 @@ const Cadastro = ({ navigation }) => {
           secureTextEntry
         />
 
-        {/* Exibir erro caso tenha */}
         {errorMessage ? <Text style={{ color: 'red', marginBottom: 10 }}>{errorMessage}</Text> : null}
 
         <Button

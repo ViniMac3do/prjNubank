@@ -1,30 +1,29 @@
 import { StatusBar } from 'expo-status-bar';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { ImageBackground, View, Text, Pressable, Modal, TextInput, Button } from 'react-native';
 import styles from './style.js';
 import React, { useState } from 'react';
+import { useAuth } from './../../contexts/AuthContext'; 
 
 export default function Login({ navigation }) {
+  const { loginContext } = useAuth(); // <<< MUDANÇA AQUI: 2. Obtenha a função de login do contexto
+
   const [modalVisible, setModalVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-
   const [carregando, setCarregando] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+
 
   const validarDados = () => {
     if (!senha || !email) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return false;
     }
-
     if (senha.length < 6) {
       Alert.alert('Erro', 'A senha precisa ter pelo menos 6 caracteres.');
       return false;
     }
-
     return true;
   };
 
@@ -35,32 +34,33 @@ export default function Login({ navigation }) {
 
     try {
       const resposta = await axios.post('http://127.0.0.1:8000/api/login', {
-      emailUsuario: email, 
-      senhaUsuario: senha, 
+        emailUsuario: email, 
+        senhaUsuario: senha, 
       });
 
-      if (resposta.data.access_token) {
-       await AsyncStorage.setItem('user_token', resposta.data.access_token);
-       setModalVisible(false);
-       Alert.alert('Sucesso', 'Login realizado com sucesso!');
-        navigation.navigate('Home');
+      // Pega o usuário e o token da resposta da API
+      const { usuario, access_token } = resposta.data;
+
+      if (usuario && access_token) {
+        await loginContext(usuario, access_token);
+
+        setModalVisible(false);
+        navigation.replace('Home');
+      } else {
+        throw new Error('Resposta da API inválida');
       }
     } catch (erro) {
       if (erro.response && erro.response.data.erro) {
-      Alert.alert('Erro no Login', erro.response.data.erro);
+        Alert.alert('Erro no Login', erro.response.data.erro);
       } else {
-
-      // Mostra um erro genérico se for um problema de conexão
-      console.error('Erro na requisição:', erro);
-      Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
-    }
+        console.error('Erro na requisição:', erro);
+        Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+      }
     } finally {
       setCarregando(false);
     }
   };
   
-
-
   return (
     <ImageBackground
       source={require('../../../assets/imgback.jpg')}
@@ -105,20 +105,15 @@ export default function Login({ navigation }) {
               />
               <Pressable
                 style={styles.loginButton}
-                title={carregando ? 'Entrando...' : 'Entrar'}
-                
-                onPress={() => {
-                  console.log('Botão logar pressionado');
-                  verificarLogin();
-                }}
+                onPress={verificarLogin} 
+                disabled={carregando}
               >
                 <Button
-                title={carregando ? 'Logando...' : 'Login'}
-                style={styles.loginButtonText}
-                color="#8309d0"
+                  title={carregando ? 'Entrando...' : 'Entrar'}
+                  color="#8309d0"
+                  onPress={verificarLogin} 
                 />
               </Pressable>
-
               <Pressable onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeModalText}>Cancelar</Text>
               </Pressable>
