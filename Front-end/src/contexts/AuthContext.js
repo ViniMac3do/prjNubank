@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+// MUDANÇA 1: Importe sua instância configurada, não o axios puro
+import api from '../utils/api'; 
 
 const AuthContext = createContext();
 
@@ -8,22 +9,24 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); 
   const [token, setToken] = useState(null); 
 
-  // Função para logar o usuário e salvar dados no estado e AsyncStorage
   const loginContext = async (userData, userToken) => {
     setUser(userData); 
     setToken(userToken); 
     await AsyncStorage.setItem('user_token', userToken); 
     await AsyncStorage.setItem('user_data', JSON.stringify(userData)); 
+    
+    // Opcional: Atualiza o token no header da api imediatamente
+    api.defaults.headers.Authorization = `Bearer ${userToken}`;
   };
 
-  // Função para deslogar o usuário, limpando estado e storage
   const signOut = async () => {
     setUser(null);
     setToken(null);
     await AsyncStorage.multiRemove(['user_token', 'user_data']); 
+    // Limpa o header
+    delete api.defaults.headers.Authorization;
   };
 
-  // Carrega dados persistidos ao iniciar o app, mantendo o usuário logado se houver
   useEffect(() => {
     const loadStoredData = async () => {
       try {
@@ -32,6 +35,8 @@ export const AuthProvider = ({ children }) => {
         if (storedToken && storedUser) {
           setToken(storedToken); 
           setUser(JSON.parse(storedUser)); 
+          // Restaura o token no Axios também
+          api.defaults.headers.Authorization = `Bearer ${storedToken}`;
         }
       } catch (e) {
         console.error("Falha ao carregar dados do AuthContext", e);
@@ -40,19 +45,19 @@ export const AuthProvider = ({ children }) => {
     loadStoredData();
   }, []);
 
-  // Função para buscar os dados mais recentes do usuário na API
   const fetchUser = async () => {
+    // Só tenta buscar se tiver usuário e token
     if (user && token) { 
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/usuarios/${user.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // MUDANÇA 2: Use 'api.get' e remova o domínio http://...
+        // O 'api' vai usar a URL que você salvou na tela de ConfigIP (Ngrok ou IP Local)
+        const response = await api.get(`/usuarios/${user.id}`);
+        
         const updatedUser = response.data;
         setUser(updatedUser); 
         await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser)); 
       } catch (error) {
         console.error("Erro ao recarregar os dados do usuário:", error);
-        // Se o token for inválido (erro 401), desloga o usuário
         if (error.response?.status === 401) {
           signOut();
         }
@@ -67,7 +72,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Hook para facilitar o uso do contexto em qualquer componente
 export const useAuth = () => {
   return useContext(AuthContext);
 };
