@@ -97,11 +97,11 @@ export default function Home({ route, navigation }) {
           <Text style={styles.actionLabel}>Pagar</Text>
         </Pressable>
 
-        <Pressable style={styles.actionButton}>
+        <Pressable style={styles.actionButton} onPress={() => navigation.navigate('Mapa')}>
           <View style={styles.actionIconContainer}>
-            <Ionicons name="qr-code-outline" size={24} color="#fff" />
+           <Ionicons name="earth-outline" size={24} color="#fff" />
           </View>
-          <Text style={styles.actionLabel}>Pagar com QR</Text>
+          <Text style={styles.actionLabel}>Mapa Inteligente</Text>
         </Pressable>
 
         <Pressable style={styles.actionButton}  onPress={() => navigation.navigate('Extrato')} >

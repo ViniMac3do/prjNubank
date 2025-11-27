@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Alert } from 'react-native';
 import { ImageBackground, View, Text, Pressable, Modal, TextInput, Button } from 'react-native';
 import styles from './style.js';
+import api from '../../utils/api';
 import React, { useState } from 'react';
 import { useAuth } from './../../contexts/AuthContext'; 
 
@@ -33,7 +34,7 @@ export default function Login({ navigation }) {
     setCarregando(true);
 
     try {
-      const resposta = await axios.post('http://127.0.0.1:8000/api/login', {
+      const resposta = await api.post('/login', {
         emailUsuario: email, 
         senhaUsuario: senha, 
       });
@@ -75,6 +76,14 @@ export default function Login({ navigation }) {
             </Pressable>
             <Pressable onPress={() => setModalVisible(true)} style={styles.buttonSecondary}>
               <Text style={styles.buttonTextSecondary}>Entrar na conta</Text>
+            </Pressable>
+            <Pressable 
+              onPress={() => navigation.navigate('ConfigIP')} 
+              style={{ marginTop: 20, padding: 10 }}
+            >
+              <Text style={{ color: 'white', textDecorationLine: 'underline', fontSize: 12 }}>
+                Configurar IP (Dev)
+              </Text>
             </Pressable>
           </>
         )}

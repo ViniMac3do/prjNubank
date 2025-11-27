@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, Pressable, Alert, Image } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import * as FileSystem from 'expo-file-system';
+import api from '../../utils/api';
 import axios from 'axios'; 
 import styles from './style';
 
@@ -53,7 +54,7 @@ const Cadastro = ({ navigation }) => {
       };
 
       try {
-        const enviarDados = await axios.post('http://127.0.0.1:8000/api/usuarios', dadosUsuario);
+        const enviarDados = await api.post('/usuarios', dadosUsuario);
         console.log('Resposta da API:', enviarDados.data);
         
         if (enviarDados.data && enviarDados.data.email) {

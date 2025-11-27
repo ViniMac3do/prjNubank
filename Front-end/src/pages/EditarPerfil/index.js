@@ -11,13 +11,12 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
+import api from '../../utils/api'; 
 import styles from './style';
 import { useAuth } from './../../contexts/AuthContext';
 
 const EditarPerfil = ({ navigation }) => {
-  const { user, token, fetchUser } = useAuth();
-  const API_URL = 'http://127.0.0.1:8000/api';
+  const { user, fetchUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [newImageInfo, setNewImageInfo] = useState(null);
@@ -29,32 +28,46 @@ const EditarPerfil = ({ navigation }) => {
   const [generoUsuario, setGeneroUsuario] = useState('');
   const [senhaUsuario, setSenhaUsuario] = useState('');
 
-  const api = axios.create({
-    baseURL: API_URL,
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  // --- FUNÇÃO SEGURA PARA VOLTAR ---
+  const handleVoltar = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // Se não tiver histórico (deu reload), vai pra Home
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+    }
+  };
 
   useEffect(() => {
     const carregarDadosDoUsuario = async () => {
       try {
+        if (!user || !user.id) {
+          // Se perdeu o usuário, manda pro login
+          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          return;
+        }
+
         const response = await api.get(`/usuarios/${user.id}`);
         const { nome, email, cep, genero, foto } = response.data;
 
-        setNomeUsuario(nome);
-        setEmailUsuario(email);
-        setCepUsuario(cep);
-        setGeneroUsuario(genero);
+        // Garante que os valores não sejam null (input trava com null)
+        setNomeUsuario(nome || '');
+        setEmailUsuario(email || '');
+        setCepUsuario(cep || '');
+        setGeneroUsuario(genero || '');
         setFotoUrl(foto);
       } catch (error) {
-        console.error('Erro ao carregar dados:', error.response?.data || error.message);
-        Alert.alert('Erro', 'Não foi possível carregar os dados do perfil.');
+        console.error('Erro ao carregar:', error);
+        Alert.alert('Erro', 'Não foi possível carregar os dados.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (user && user.id && token) carregarDadosDoUsuario();
-    else navigation.goBack();
+    carregarDadosDoUsuario();
   }, []);
 
   const solicitarPermissao = async () => {
@@ -72,7 +85,7 @@ const EditarPerfil = ({ navigation }) => {
     const resultado = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 1
+      quality: 1,
     });
     if (!resultado.canceled) setNewImageInfo(resultado.assets[0].uri);
   };
@@ -82,7 +95,7 @@ const EditarPerfil = ({ navigation }) => {
     const resultado = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 1
+      quality: 1,
     });
     if (!resultado.canceled) setNewImageInfo(resultado.assets[0].uri);
   };
@@ -100,28 +113,18 @@ const EditarPerfil = ({ navigation }) => {
 
       if (senhaUsuario) dadosUsuario.senhaUsuario = senhaUsuario;
 
-      const response = await axios.put(
-        `${API_URL}/usuarios/${user.id}`,
-        dadosUsuario,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.put(`/usuarios/${user.id}`, dadosUsuario);
 
       if (response.data && response.data.email) {
         Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
-        fetchUser();
-        navigation.goBack();
+        await fetchUser(); // Atualiza o contexto
+        handleVoltar(); // Usa a função segura de voltar
       } else {
-        Alert.alert('Erro', 'Erro ao atualizar perfil. Tente novamente!');
+        Alert.alert('Erro', 'Erro ao atualizar perfil.');
       }
     } catch (error) {
-      console.error('Erro ao atualizar perfil:', error.response?.data || error.message);
-      Alert.alert('Erro', error.response?.data?.erro || 'Não foi possível atualizar o perfil.');
+      console.error('Erro update:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar.');
     } finally {
       setIsLoading(false);
     }
@@ -131,13 +134,12 @@ const EditarPerfil = ({ navigation }) => {
     return (
       <View style={{ flex:1, justifyContent:'center', alignItems:'center' }}>
         <ActivityIndicator size="large" color="#820AD1" />
-        <Text>Carregando dados...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <Pressable 
           style={styles.profileAvatarWrapper} 
@@ -166,20 +168,23 @@ const EditarPerfil = ({ navigation }) => {
         <View style={styles.inputRow}>
           <Ionicons name="person-outline" size={22} color="#820AD1" style={styles.inputIcon} />
           <TextInput
-            style={styles.inputValue}
+            style={[styles.inputValue, { color: '#000' }]} // FORÇA A COR PRETA
             value={nomeUsuario}
             onChangeText={setNomeUsuario}
             placeholder="Nome completo"
+            placeholderTextColor="#999"
+            editable={true} // FORÇA SER EDITAVEL
           />
         </View>
 
         <View style={styles.inputRow}>
           <Ionicons name="mail-outline" size={22} color="#820AD1" style={styles.inputIcon} />
           <TextInput
-            style={styles.inputValue}
+            style={[styles.inputValue, { color: '#000' }]}
             value={emailUsuario}
             onChangeText={setEmailUsuario}
             placeholder="Email"
+            placeholderTextColor="#999"
             keyboardType="email-address"
           />
         </View>
@@ -187,10 +192,11 @@ const EditarPerfil = ({ navigation }) => {
         <View style={styles.inputRow}>
           <Ionicons name="location-outline" size={22} color="#820AD1" style={styles.inputIcon} />
           <TextInput
-            style={styles.inputValue}
+            style={[styles.inputValue, { color: '#000' }]}
             value={cepUsuario}
             onChangeText={setCepUsuario}
             placeholder="CEP"
+            placeholderTextColor="#999"
             keyboardType="numeric"
           />
         </View>
@@ -198,28 +204,32 @@ const EditarPerfil = ({ navigation }) => {
         <View style={styles.inputRow}>
           <Ionicons name="transgender-outline" size={22} color="#820AD1" style={styles.inputIcon} />
           <TextInput
-            style={styles.inputValue}
+            style={[styles.inputValue, { color: '#000' }]}
             value={generoUsuario}
             onChangeText={setGeneroUsuario}
             placeholder="Gênero"
+            placeholderTextColor="#999"
           />
         </View>
 
         <View style={styles.inputRow}>
           <Ionicons name="lock-closed-outline" size={22} color="#820AD1" style={styles.inputIcon} />
           <TextInput
-            style={styles.inputValue}
+            style={[styles.inputValue, { color: '#000' }]}
             value={senhaUsuario}
             onChangeText={setSenhaUsuario}
-            placeholder="Senha"
+            placeholder="Nova Senha (opcional)"
+            placeholderTextColor="#999"
             secureTextEntry
           />
         </View>
 
         <View style={styles.actionButtonsContainer}>
-          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+          {/* BOTÃO VOLTAR SEGURO */}
+          <Pressable style={styles.backButton} onPress={handleVoltar}>
             <Text style={styles.backButtonText}>Voltar</Text>
           </Pressable>
+          
           <Pressable style={styles.saveButton} onPress={atualizar}>
             <Text style={styles.saveButtonText}>Salvar Alterações</Text>
           </Pressable>
